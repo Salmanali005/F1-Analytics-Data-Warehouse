@@ -1,0 +1,4 @@
+CREATE SCHEMA IF NOT EXISTS project_staging;
+CREATE SCHEMA IF NOT EXISTS project_dw;
+CREATE SCHEMA IF NOT EXISTS project_reporting;
+
