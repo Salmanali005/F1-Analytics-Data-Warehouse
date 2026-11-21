@@ -109,8 +109,8 @@ Phase 2 implements the Phase 1 design in PostgreSQL: source files → staging �
 | Phase 2 requirement | Where it is implemented | Status |
 |---|---|:-:|
 | **Data source** (Kaggle; 100+ dimension rows, 10,000+ fact rows) | Ergast F1 dataset; 3,728 dimension rows, 27,587 + 35,813 fact rows | ✓ |
-| **Architecture:** `project_staging` → `project_dw` → `project_reporting` | `sql/01_schemas.sql` | ✓ (reporting schema created, views are Phase 3) |
-| **Staging layer:** remove duplicates, handle NULLs, standardise text, convert types | `etl/01_extract_load_staging.py`, `sql/02_staging_clean.sql`, `cleaning_log` | ✓ |
+| **Architecture:** `project_staging` → `project_dw` → `project_reporting` | `sql/01_schemas.sql` (creates the three schemas) | ✓ (reporting schema created, views are Phase 3) |
+| **Staging layer:** staging tables, remove duplicates, handle NULLs, standardise text, convert types | `sql/01_schemas.sql` (staging `CREATE TABLE`), `etl/01_extract_load_staging.py`, `sql/02_staging_clean.sql`, `cleaning_log` | ✓ |
 | **Dimensions with surrogate keys** (business key → surrogate key) | `sql/03_dw_ddl.sql`, `sql/04_load_dimensions.sql` | ✓ |
 | **Fact loading** via business key → surrogate key lookup | `sql/05_load_facts.sql` | ✓ |
 | **Data quality:** completeness, accuracy, integrity | `sql/06_data_quality.sql` → `project_dw.dq_log` (49 checks) | ✓ |
@@ -138,7 +138,7 @@ Phase 2 implements the Phase 1 design in PostgreSQL: source files → staging �
 
 | Step | File | Purpose |
 |---|---|---|
-| 1 | `sql/01_schemas.sql` | Create `project_staging`, `project_dw`, `project_reporting` |
+| 1 | `sql/01_schemas.sql` | Create `project_staging`, `project_dw`, `project_reporting` and the 7 staging tables (raw `TEXT` landing columns) |
 | 2 | `etl/01_extract_load_staging.py` | Read the 7 CSVs and load them into `project_staging` |
 | 3 | `sql/02_staging_clean.sql` | Deduplicate, standardise text, handle NULLs, cast types, write `cleaning_log` |
 | 4 | `sql/03_dw_ddl.sql` | Create the 7 dimensions and 3 fact tables with keys and foreign keys |
@@ -148,7 +148,9 @@ Phase 2 implements the Phase 1 design in PostgreSQL: source files → staging �
 
 ## 2.4 Staging Layer
 
-**Extract and load** (`01_extract_load_staging.py`): the Ergast null marker `\N` becomes a real SQL `NULL`; columns are renamed to `snake_case` (`raceId` → `race_id`); only the needed columns of `races.csv` are kept; tables are replaced on every run.
+**Staging tables** (`sql/01_schemas.sql`): the 7 `stg_*` tables are created with explicit `CREATE TABLE` statements. Every column is `TEXT` (a raw landing zone); `02_staging_clean.sql` later converts each column to its proper type. The tables are dropped and recreated on every run.
+
+**Extract and load** (`01_extract_load_staging.py`): the Ergast null marker `\N` becomes a real SQL `NULL`; columns are renamed to `snake_case` (`raceId` → `race_id`); only the needed columns of `races.csv` are kept; rows are appended into the staging tables.
 
 | Staging table | Source file | Rows |
 |---|---|--:|
@@ -251,7 +253,7 @@ Wins reconcile exactly (1,172). Read the log with `SELECT * FROM project_dw.dq_l
 │   ├── 01_extract_load_staging.py   # CSV → staging tables
 │   └── run_pipeline.py              # runs all 7 steps, prints the DQ results
 ├── sql/
-│   ├── 01_schemas.sql
+│   ├── 01_schemas.sql              # schemas + staging tables
 │   ├── 02_staging_clean.sql
 │   ├── 03_dw_ddl.sql
 │   ├── 04_load_dimensions.sql
