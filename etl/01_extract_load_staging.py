@@ -44,5 +44,5 @@ for filename, table_name in files_to_tables.items():
     elif filename == "driver_standings.csv":
         df.columns = ["driver_standings_id", "race_id", "driver_id", "points", "position", "position_text", "wins"]
 
-    df.to_sql(table_name, engine, schema="project_staging", if_exists="replace", index=False)
+    df.to_sql(table_name, engine, schema="project_staging", if_exists="append", index=False)
     print(f"Loaded {len(df)} rows into project_staging.{table_name}")
